@@ -395,8 +395,8 @@ const fE=v=>((Math.round(v*10)/10)||0).toLocaleString('ko-KR',{maximumFractionDi
 const won=v=>Math.round(v).toLocaleString('ko-KR');
 const signed=v=>{ const r=Math.round(v*10)/10; return r>0?`<span class="up">▲${r.toFixed(1)}%p</span>`:r<0?`<span class="dn">▼${Math.abs(r).toFixed(1)}%p</span>`:`<span class="mut">±0.0%p</span>`; };
 const signed2=v=>{ const r=Math.round(v*100)/100; return r>0?`+${r.toFixed(2)}`:r<0?`−${Math.abs(r).toFixed(2)}`:'−0.00'; };
-const mixTxt=s=>`TV ${fP(100-s)} : OTT ${fP(s)}`;
-const mixHtml=s=>`<span class="mx-tv">TV ${fP(100-s)}</span> : <span class="mx-ott">OTT ${fP(s)}</span>`;
+const mixTxt=s=>`TV ${fP(100-s)}% : OTT ${fP(s)}%`;
+const mixHtml=s=>`<span class="mx-tv">TV ${fP(100-s)}%</span> : <span class="mx-ott">OTT ${fP(s)}%</span>`;
 function eokTxt(w){ const e=w/EOK; if(e>=1) return fE(e)+'억'; const m=w/1e4; return m>=1? Math.round(m).toLocaleString('ko-KR')+'만':won(w); }
 const digits=s=>parseFloat(String(s).replace(/[^\d.]/g,''))||0;
 
@@ -652,9 +652,20 @@ function drawChart(me){
   if(meIn){ avoid.push({l:mx-7,r:mx+7,t:pt,b:pb}); const cl=co.offsetLeft, ct=co.offsetTop; avoid.push({l:cl-6,r:cl+co.offsetWidth+6,t:ct-6,b:ct+co.offsetHeight+6}); }
   const ov=(a,b)=>Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l))*Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t));
   let lab='';
+  // '최적' tag sits right on top of each marker (below it if there is no room above)
+  OPTS.forEach(([g,k])=>{ const ox=X(g.share), oy=Y(g[k]), tw0=tw('최적',11.5,900);
+    // try above → right → left → below; skip spots that hit the plot edge, 내 플랜 line/card or other tags
+    const cands=[[ox,oy-12,'middle'],[ox+11,oy+4,'start'],[ox-11,oy+4,'end'],[ox,oy+22,'middle']];
+    let pick=null;
+    for(const [tx,ty,an] of cands){ const l=an==='start'?tx:an==='end'?tx-tw0:tx-tw0/2, bx={l:l-2,r:l+tw0+2,t:ty-12,b:ty+3};
+      const out=bx.l<plotBox.l||bx.r>plotBox.r||bx.t<plotBox.t-2||bx.b>plotBox.b; const hit=avoid.some(a=>ov(bx,a)>0);
+      if(!out&&!hit){ pick=[tx,ty,an,bx]; break; } if(!pick&&!out) pick=[tx,ty,an,bx]; }
+    if(!pick){ const [tx,ty,an]=cands[0]; pick=[tx,ty,an,{l:tx-16,r:tx+16,t:ty-12,b:ty+3}]; }
+    avoid.push(pick[3]);
+    lab+=`<text x="${pick[0]}" y="${pick[1]}" text-anchor="${pick[2]}" font-size="11.5" font-weight="900" fill="var(--best-ink)" stroke="#fff" stroke-width="4" stroke-linejoin="round" paint-order="stroke">최적</text>`; });
   OPTS.forEach(([g,k])=>{
     const ox=X(g.share), oy=Y(g[k]);
-    const L=[[`${k==='u1'?'Reach 1+':'Reach 3+'} 최적 ${g[k].toFixed(Math.max(1,ydec))}%`,10.5,800],[`TV ${fP(100-g.share)} : OTT ${fP(g.share)}`,11,800],[`TV ${eokTxt(g.t*EOK)} · OTT ${eokTxt(g.o*EOK)}`,10.5,700]];
+    const L=[[`${k==='u1'?'Reach 1+':'Reach 3+'} ${g[k].toFixed(Math.max(1,ydec))}%`,11,800],[`TV ${fP(100-g.share)}% : OTT ${fP(g.share)}%`,11,800],[`TV ${eokTxt(g.t*EOK)} · OTT ${eokTxt(g.o*EOK)}`,10.5,700]];
     const w=Math.max(...L.map(l=>tw(...l)))+4, h=40;
     const preferAbove = k==='u1' || !SH.u1;
     const curvePts=[]; ['u1','u3'].forEach(kk=>{ if(SH[kk]) VG.forEach(gg=>curvePts.push([X(gg.share),Y(gg[kk])])); });
@@ -724,7 +735,7 @@ function drawTable(me){
     let pills=''; if(isMe(r)) pills+='<span class="pill me">내 플랜</span>';
     if(Math.abs(r.share-OPT1.share)<1e-9) pills+='<span class="pill best">1+ 최적</span>'; if(Math.abs(r.share-OPT3.share)<1e-9) pills+='<span class="pill best">3+ 최적</span>';
     h+=`<tr data-s="${r.share}" class="${isMe(r)?'me-row':''}${i===meIdx-1?' before-me':''}">
-      <td class="c num">${fP(100-r.share)} : ${fP(r.share)}${pills}</td>
+      <td class="c num">${fP(100-r.share)}% : ${fP(r.share)}%${pills}</td>
       <td class="num bl">${fE(r.t)}</td><td class="num">${fE(r.o)}</td>
       <td class="num bl">${f1(r.tv1)}</td><td class="num">${f1(r.o1)}</td><td class="num u ${Math.abs(r.share-OPT1.share)<1e-9?'bestcell':''}">${f1(r.u1)}</td><td class="num">${r.share===0?'<span class="mut">기준</span>':signed(r.u1-BASE.u1)}</td><td class="num">${vsOpt(r,'u1',OPT1,Z1)}</td>
       <td class="num bl">${f1(r.tv3)}</td><td class="num">${f1(r.o3)}</td><td class="num u ${Math.abs(r.share-OPT3.share)<1e-9?'bestcell':''}">${f1(r.u3)}</td><td class="num">${r.share===0?'<span class="mut">기준</span>':signed(r.u3-BASE.u3)}</td><td class="num">${vsOpt(r,'u3',OPT3,Z3)}</td></tr>`;
