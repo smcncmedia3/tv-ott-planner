@@ -168,6 +168,13 @@ button.kpi.cur:hover{border-color:var(--line);box-shadow:0 1px 2px rgba(20,30,45
 .rg-conv .r b{font-size:14px;font-weight:800;min-width:120px}
 .rg-conv .r small{color:var(--muted);font-weight:600;font-size:11.5px}
 .rg-conv .warn{margin-top:4px;font-weight:700;font-size:11.5px}
+.tk{margin-top:12px}
+.tkl{display:block;font-size:11.5px;font-weight:800;color:var(--ink2);margin-bottom:6px}
+.tkseg button{padding:6px 2px;font-size:11.5px}
+.tkc{white-space:nowrap;display:flex;align-items:center;gap:6px;margin-top:6px;border:1px solid var(--line);border-radius:9px;padding:0 10px;height:34px;font-size:11.5px;font-weight:700;color:var(--muted);width:170px}
+.tkc:focus-within{border-color:var(--me)}
+.tkc input{border:0;outline:0;width:100%;min-width:0;text-align:right;font-size:13px;font-weight:800;color:var(--ink);background:transparent}
+.tkc em{font-style:normal}
 .modal .acts .btn:disabled{opacity:.45;cursor:not-allowed}
 .c-foot{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;font-weight:600;padding:6px 2px 2px;border-top:1px solid var(--gline);margin-top:4px}
 
@@ -357,7 +364,7 @@ let AXV = 1;
 const TV_MAX_OBS = 189.2, OTT_MAX = 30, EOK = 1e8, TOL_DEFAULT = 0.2;
 
 /* budget is kept in 원; share = OTT 비중(%) */
-const S = { won:200*EOK, share:20, mix:'nf80', lam:1.08, tvc:'base', tol:TOL_DEFAULT, step:5, show:{u1:true,u3:true,me:true}, view:[0,100], yr:null };
+const S = { won:200*EOK, share:20, mix:'nf80', lam:1.08, tvc:'base', tol:TOL_DEFAULT, step:5, show:{u1:true,u3:true,me:true}, view:[0,100], yr:null, ys:null };
 const B = () => S.won/EOK;
 
 const hill = (b,[R,k,h]) => b<=0 ? 0 : Math.min(100, R*Math.pow(b,h)/(Math.pow(k,h)+Math.pow(b,h)));
@@ -427,22 +434,32 @@ function openY(){
   const [alo,ahi]=drawChart.auto||[40,100], cur=S.yr||[SC.y0??Math.floor(alo),SC.y1??100];
   openModal(`<h4>Y축 구간 설정</h4><p>그래프 세로축(도달률)의 최솟값과 최댓값을 입력하세요. 지금 보이는 곡선은 <b>${f1(alo)}% ~ ${f1(ahi)}%</b> 범위에 있어요.</p>
     <div class="rg">
-      <label><span>최소</span><input id="ygA" class="num" inputmode="decimal" value="${fP(cur[0])}"><em>%</em></label>
+      <label><span>최소</span><input id="ygA" class="num" inputmode="decimal" value="${+(+cur[0]).toFixed(2)}"><em>%</em></label>
       <span class="rg-to">~</span>
-      <label><span>최대</span><input id="ygB" class="num" inputmode="decimal" value="${fP(cur[1])}"><em>%</em></label>
+      <label><span>최대</span><input id="ygB" class="num" inputmode="decimal" value="${+(+cur[1]).toFixed(2)}"><em>%</em></label>
+    </div>
+    <div class="tk"><span class="tkl">세부 표시 · 눈금 간격</span>
+      <div class="seg tkseg" id="ygStep">${[['','자동'],[0.05,'0.05'],[0.1,'0.1'],[0.2,'0.2'],[0.25,'0.25'],[0.5,'0.5'],[1,'1'],[2,'2'],[5,'5']].map(([v,t])=>`<button data-v="${v}" class="${String(S.ys??'')===String(v)?'on':''}">${t}</button>`).join('')}</div>
+      <label class="tkc">직접<input id="ygStepIn" class="num" inputmode="decimal" placeholder="예: 0.15" value="${S.ys&&![0.05,0.1,0.2,0.25,0.5,1,2,5].includes(S.ys)?S.ys:''}"><em>%p</em></label>
     </div>
     <div class="rg-conv num" id="ygMsg"></div>
     <div class="acts"><button class="btn" id="ygAuto" style="margin-right:auto">자동 맞춤</button><button class="btn" data-close>취소</button><button class="btn ok" id="ygOk">적용</button></div>`);
   const num=id=>{ const v=parseFloat(String($(id).value).replace(/[^\d.]/g,'')); return isNaN(v)?null:Math.max(0,Math.min(100,v)); };
+  let ys=S.ys;
+  const stepOf=()=>{ const cv=parseFloat($('ygStepIn').value); return !isNaN(cv)&&cv>0 ? cv : ys; };
+  $('ygStep').querySelectorAll('button').forEach(bt=>bt.onclick=()=>{ $('ygStep').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt)); ys=bt.dataset.v?+bt.dataset.v:null; $('ygStepIn').value=''; upd(); });
+  $('ygStepIn').addEventListener('input',()=>{ $('ygStep').querySelectorAll('button').forEach(x=>x.classList.remove('on')); upd(); });
   const upd=()=>{ const a=num('ygA'), b=num('ygB'), c=$('ygMsg');
     if(a===null||b===null){ c.innerHTML='<span class="dn">숫자를 입력해 주세요</span>'; $('ygOk').disabled=true; return; }
-    const lo=Math.min(a,b), hi=Math.max(a,b), ok=hi-lo>=1; $('ygOk').disabled=!ok;
+    const lo=Math.min(a,b), hi=Math.max(a,b), st=stepOf(), many=st&&(hi-lo)/st>40, ok=hi-lo>=0.2&&!many; $('ygOk').disabled=!ok;
     const cut=[]; if(alo<lo) cut.push(`아래쪽 ${f1(alo)}%~${fP(lo)}%`); if(ahi>hi) cut.push(`위쪽 ${fP(hi)}%~${f1(ahi)}%`);
-    c.innerHTML=ok?`<div class="r"><span>Y축</span><b>${fP(lo)}% → ${fP(hi)}%</b><small>눈금 ${fP(niceStep(hi-lo,5))}%p 간격</small></div>${cut.length?`<div class="warn" style="color:var(--muted)">곡선의 ${cut.join(', ')} 부분은 화면 밖으로 잘려요</div>`:''}`
-      :'<div class="warn dn">최소와 최대 사이가 1%p 이상이어야 해요</div>'; };
+    const eff=st||niceStep(hi-lo,5), n=Math.floor((hi-lo)/eff+1e-9)+1;
+    c.innerHTML=many?`<div class="warn dn">눈금이 너무 많아요 (${Math.round((hi-lo)/st)}개). 범위를 좁히거나 간격을 넓혀 주세요 · 최대 40개</div>`
+      : ok?`<div class="r"><span>Y축</span><b>${+lo.toFixed(2)}% → ${+hi.toFixed(2)}%</b><small>눈금 ${+eff.toFixed(3)}%p 간격 · ${n}개${st?'':' (자동)'}</small></div>${cut.length?`<div class="warn" style="color:var(--muted)">곡선의 ${cut.join(', ')} 부분은 화면 밖으로 잘려요</div>`:''}`
+      :'<div class="warn dn">최소와 최대 사이가 0.2%p 이상이어야 해요</div>'; };
   ['ygA','ygB'].forEach(id=>{ $(id).addEventListener('input',upd); $(id).addEventListener('keydown',e=>{ if(e.key==='Enter' && !$('ygOk').disabled) $('ygOk').click(); }); });
-  $('ygOk').onclick=()=>{ const a=num('ygA'), b=num('ygB'); S.yr=[Math.min(a,b),Math.max(a,b)]; closeModal(); render(); };
-  $('ygAuto').onclick=()=>{ S.yr=null; closeModal(); render(); };
+  $('ygOk').onclick=()=>{ const a=num('ygA'), b=num('ygB'); S.yr=[Math.min(a,b),Math.max(a,b)]; S.ys=stepOf()||null; closeModal(); render(); };
+  $('ygAuto').onclick=()=>{ S.yr=null; S.ys=null; closeModal(); render(); };
   upd(); $('ygA').focus(); $('ygA').select();
 }
 $('btnY').onclick=openY;
@@ -526,7 +543,7 @@ function render(){
   document.querySelectorAll('.legend .lg[data-k]').forEach(b=>b.classList.toggle('off',!S.show[b.dataset.k]));
   const zoomed=!(S.view[0]===0&&S.view[1]===100);
   $('btnRange').classList.toggle('on',zoomed); $('rangeTxt').textContent=zoomed?` · TV ${fP(100-S.view[0])}~${fP(100-S.view[1])}%`:'';
-  $('btnY').classList.toggle('on',!!S.yr); $('yTxt').textContent=S.yr?` · ${fP(S.yr[0])}~${fP(S.yr[1])}%`:'';
+  $('btnY').classList.toggle('on',!!S.yr); $('btnY').classList.toggle('on',!!(S.yr||S.ys)); $('yTxt').textContent=(S.yr?` · ${+S.yr[0].toFixed(2)}~${+S.yr[1].toFixed(2)}%`:'')+(S.ys?` · 눈금 ${S.ys}%p`:'');
   drawChart(me); drawTable(me);
 }
 
@@ -545,6 +562,8 @@ function drawChart(me){
   let y1=Math.min(100,Math.ceil((hi+(hi-y0)*.05)/step)*step);
   { const ph=H-m.t-m.b; while(y1+step<=100 && (y1-hi)/(y1-y0)*ph<64) y1+=step; }
   let ystep=step; if(S.yr){ y0=S.yr[0]; y1=S.yr[1]; ystep=niceStep(y1-y0,5); }
+  if(S.ys && (y1-y0)/S.ys<=40) ystep=S.ys;
+  const ydec=Math.min(2,(String(+ystep.toFixed(4)).split('.')[1]||'').length);
   drawChart.auto=[lo,hi];
   const X=v=>m.l+PX+(v-x0)/(x1-x0)*(W-m.l-m.r-2*PX), Y=v=>m.t+(1-(v-y0)/(y1-y0))*(H-m.t-m.b);
   SC={X,Y,x0,x1,m,W,H,PX,y0,y1};
@@ -558,7 +577,7 @@ function drawChart(me){
     if(endShare>x0){ const tx=Math.abs(mx-ex)<14? ex+12 : ex+13, ty=Y(y0+(y1-y0)*.45), lw=tw(`OTT 곡선 실측 끝 ${OTT_MAX}억 →`,10.5,600); endBox={l:tx-11,r:tx+3,t:ty-lw/2-4,b:ty+lw/2+4};
       s+=`<line x1="${ex}" x2="${ex}" y1="${pt}" y2="${pb}" stroke="#b9c1c9" stroke-dasharray="2 3"/><text transform="translate(${tx},${ty}) rotate(-90)" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-weight="600">OTT 곡선 실측 끝 ${OTT_MAX}억 →</text>`; } }
   // grid + y labels
-  for(let v=Math.ceil(y0/ystep-1e-9)*ystep; v<=y1+1e-9; v+=ystep){ const y=Y(v), vl=Math.round(v*100)/100; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="#e6e9ec"/><text x="${m.l-9}" y="${y+3.5}" text-anchor="end" font-size="11" fill="var(--muted)" font-weight="600">${vl}%</text>`; }
+  for(let i=Math.ceil(y0/ystep-1e-9); i*ystep<=y1+1e-9; i++){ const v=i*ystep, y=Y(v), vl=v.toFixed(ydec); s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="#e6e9ec"/><text x="${m.l-9}" y="${y+3.5}" text-anchor="end" font-size="11" fill="var(--muted)" font-weight="600">${vl}%</text>`; }
   // x axes: top = TV (navy), bottom = OTT (orange); everything stays inside the plot column
   //  1 = solid bands · 4 = thin wedge · 5 = thick wedge, names at the thick ends · 6 = stepped blocks · 7 = wedge + labels that grow/shrink
   const bx=m.l, bw=W-m.l-m.r, V=AXV;
