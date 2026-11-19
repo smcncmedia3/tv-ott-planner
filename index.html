@@ -151,6 +151,18 @@ button.kpi.cur:hover{border-color:var(--line);box-shadow:0 1px 2px rgba(20,30,45
 .hcard .r.sub{color:#9aa6b2}
 .hcard .r.sub b{color:#dfe5eb;font-weight:700}
 .hcard .f{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12);color:#9aa6b2;font-size:10.5px;font-weight:600}
+.viewbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:8px 10px;background:#f6f7f8;border-radius:11px;font-size:12px;font-weight:700;color:var(--ink2)}
+.viewbar .vl{font-weight:800;color:var(--ink);margin-right:2px}
+.viewbar label{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 8px;height:30px}
+.viewbar label:focus-within{border-color:var(--me)}
+.viewbar input{width:44px;border:0;outline:0;font:inherit;font-weight:800;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;background:transparent}
+.viewbar .tvh{font-size:11px;color:var(--muted);font-weight:600}
+.viewbar .chips2{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.viewbar .chips2 button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--ink2)}
+.viewbar .chips2 button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.mini{margin-top:2px;position:relative}
+.mini svg{display:block;width:100%;user-select:none;touch-action:none}
+.mini-cap{font-size:11px;color:var(--muted);font-weight:600;margin:2px 0 0 58px}
 .c-foot{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;font-weight:600;padding:6px 2px 2px;border-top:1px solid var(--gline);margin-top:4px}
 
 /* table */
@@ -308,7 +320,15 @@ tbody tr:hover td{background:#fafbfc}
           <button class="lg" data-k="me"><span class="me-dot"></span>내 플랜</button>
         </div>
       </div>
+      <div class="viewbar">
+        <span class="vl">보기 구간</span>
+        <label>OTT<input id="v0" class="num" inputmode="decimal">%</label>~<label><input id="v1" class="num" inputmode="decimal">%</label>
+        <span class="tvh num" id="vTv"></span>
+        <div class="chips2" id="vChips"><button data-v="all">전체</button><button data-v="030">OTT 0~30%</button><button data-v="me">내 플랜 주변</button><button data-v="opt">최적 구간</button></div>
+      </div>
       <div class="plot" id="plot"><svg id="svg"></svg><div class="callout" id="callout"></div><div class="hcard" id="hcard"></div></div>
+      <div class="mini"><svg id="mini"></svg></div>
+      <div class="mini-cap">↑ 전체 그래프 · 끌어서 보고 싶은 구간을 고르거나, 회색 창을 옮기거나 양 끝을 늘이고 줄일 수 있어요</div>
       <div class="c-foot"><span>그래프 위에 마우스를 올리면 그 지점 값을 보여 주고, 클릭하거나 파란 선을 끌면 비중이 바뀝니다</span><span id="cNote"></span></div>
     </div>
 
@@ -336,7 +356,7 @@ let AXV = 1;
 const TV_MAX_OBS = 189.2, OTT_MAX = 30, EOK = 1e8, TOL_DEFAULT = 0.2;
 
 /* budget is kept in 원; share = OTT 비중(%) */
-const S = { won:200*EOK, share:20, mix:'nf80', lam:1.08, tvc:'base', tol:TOL_DEFAULT, step:5, show:{u1:true,u3:true,me:true} };
+const S = { won:200*EOK, share:20, mix:'nf80', lam:1.08, tvc:'base', tol:TOL_DEFAULT, step:5, show:{u1:true,u3:true,me:true}, view:[0,100] };
 const B = () => S.won/EOK;
 
 const hill = (b,[R,k,h]) => b<=0 ? 0 : Math.min(100, R*Math.pow(b,h)/(Math.pow(k,h)+Math.pow(b,h)));
@@ -361,7 +381,7 @@ function compute(){
 /* formatting */
 const f1=v=>v.toFixed(1);
 const fP=v=>{ const r=Math.round(v*10)/10; return Number.isInteger(r)?String(r):r.toFixed(1); };
-const fE=v=>(Math.round(v*10)/10).toLocaleString('ko-KR',{maximumFractionDigits:1});
+const fE=v=>((Math.round(v*10)/10)||0).toLocaleString('ko-KR',{maximumFractionDigits:1});
 const won=v=>Math.round(v).toLocaleString('ko-KR');
 const signed=v=>{ const r=Math.round(v*10)/10; return r>0?`<span class="up">▲${r.toFixed(1)}%p</span>`:r<0?`<span class="dn">▼${Math.abs(r).toFixed(1)}%p</span>`:`<span class="mut">±0.0%p</span>`; };
 const signed2=v=>{ const r=Math.round(v*100)/100; return r>0?`+${r.toFixed(2)}`:r<0?`−${Math.abs(r).toFixed(2)}`:'−0.00'; };
@@ -376,6 +396,15 @@ function segBind(id,key,conv=v=>v){ $(id).querySelectorAll('button').forEach(b=>
 document.querySelectorAll('.legend .lg').forEach(b=>b.onclick=()=>{ const k=b.dataset.k;
   if(k!=='me' && S.show[k] && !S.show[k==='u1'?'u3':'u1']) return; // keep at least one curve
   S.show[k]=!S.show[k]; render(); });
+function setView(a,b){ a=Math.max(0,Math.min(100,a)); b=Math.max(0,Math.min(100,b)); if(a>b)[a,b]=[b,a];
+  if(b-a<2){ const c=(a+b)/2; a=Math.max(0,Math.min(98,c-1)); b=a+2; }
+  S.view=[Math.round(a*10)/10, Math.round(b*10)/10]; render(); }
+['v0','v1'].forEach((id,i)=>{ $(id).addEventListener('change',e=>{ const v=parseFloat(String(e.target.value).replace(/[^\d.]/g,'')); if(isNaN(v)) return render();
+  i?setView(S.view[0],v):setView(v,S.view[1]); }); $(id).addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.blur(); }); });
+$('vChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{ const k=b.dataset.v;
+  if(k==='all') setView(0,100); else if(k==='030') setView(0,30);
+  else if(k==='me'){ const a=Math.max(0,Math.min(80,S.share-10)); setView(a,a+20); }
+  else { const lo=Math.min(Z1[0],Z3[0],OPT1.share,OPT3.share), hi=Math.max(Z1[1],Z3[1],OPT1.share,OPT3.share), pad=Math.max(2,(hi-lo)*.25); setView(Math.floor(lo-pad),Math.ceil(hi+pad)); } });
 segBind('ottMix','mix'); segBind('lam','lam',Number); segBind('tvc','tvc'); segBind('step','step',Number);
 $('slider').oninput=e=>{ S.share=100-(+e.target.value); render(); };
 
@@ -454,6 +483,9 @@ function render(){
   $('kb1').classList.toggle('cur',isCur(OPT1)); $('kb3').classList.toggle('cur',isCur(OPT3));
   $('cSub').textContent=`총 ${eokTxt(S.won)} 원 · 위 축은 TV, 아래 축은 OTT 비중 · 파란 선이 내가 설정한 비중`;
   document.querySelectorAll('.legend .lg').forEach(b=>b.classList.toggle('off',!S.show[b.dataset.k]));
+  if(document.activeElement!==$('v0')) $('v0').value=fP(S.view[0]); if(document.activeElement!==$('v1')) $('v1').value=fP(S.view[1]);
+  $('vTv').textContent=`(TV ${fP(100-S.view[0])}~${fP(100-S.view[1])}%)`;
+  $('vChips').querySelectorAll('button').forEach(b=>b.classList.toggle('on', (b.dataset.v==='all'&&S.view[0]===0&&S.view[1]===100)||(b.dataset.v==='030'&&S.view[0]===0&&S.view[1]===30)));
   drawChart(me); drawTable(me);
 }
 
@@ -463,23 +495,27 @@ let SC=null, hovering=false;
 function drawChart(me){
   const svg=$('svg'), W=$('plot').clientWidth, MT=AXV===1?98:AXV===4?102:110, m={l:58,r:16,t:MT,b:MT}, H=MT*2+400, PX=26;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('height',H);
-  const x0=0,x1=100;
-  const KS=['u1','u3'].filter(k=>S.show[k]), SH=S.show; let lo=Math.min(...G.flatMap(g=>KS.map(k=>g[k]))), hi=Math.max(...G.flatMap(g=>KS.map(k=>g[k])));
-  const step=niceStep(Math.max(hi-lo,2),5); let y0=Math.floor(lo/step)*step; if(lo-y0<step*.3) y0-=step; y0=Math.max(0,y0);
+  const x0=S.view[0], x1=S.view[1], VG=[]; for(let i=0;i<=240;i++) VG.push(calc(x0+(x1-x0)*i/240));
+  const inV=v=>v>=x0-1e-9&&v<=x1+1e-9;
+  const ctx=(drawChart._c||(drawChart._c=document.createElement('canvas').getContext('2d')));
+  const tw=(t,sz,wt)=>{ ctx.font=`${wt} ${sz}px Pretendard, sans-serif`; return ctx.measureText(t).width; };
+  const KS=['u1','u3'].filter(k=>S.show[k]), SH=S.show; let lo=Math.min(...VG.flatMap(g=>KS.map(k=>g[k]))), hi=Math.max(...VG.flatMap(g=>KS.map(k=>g[k])));
+  const step=niceStep(Math.max(hi-lo,1),5); let y0=Math.floor(lo/step)*step; if(lo-y0<step*.3) y0-=step; y0=Math.max(0,y0);
   let y1=Math.min(100,Math.ceil((hi+(hi-y0)*.05)/step)*step);
   { const ph=H-m.t-m.b; while(y1+step<=100 && (y1-hi)/(y1-y0)*ph<64) y1+=step; }
   const X=v=>m.l+PX+(v-x0)/(x1-x0)*(W-m.l-m.r-2*PX), Y=v=>m.t+(1-(v-y0)/(y1-y0))*(H-m.t-m.b);
   SC={X,Y,x0,x1,m,W,H,PX};
-  const mx=X(S.share), pb=H-m.b, pt=m.t;
+  const mx=X(S.share), pb=H-m.b, pt=m.t, meIn=SH.me&&inV(S.share);
   let s=`<defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#354758" stop-opacity=".15"/><stop offset="1" stop-color="#354758" stop-opacity="0"/></linearGradient><clipPath id="cp"><rect x="${m.l}" y="${pt-3}" width="${W-m.l-m.r}" height="${pb-pt+3}"/></clipPath></defs>`;
   // OTT data-end region
+  let endBox=null;
   const endShare=OTT_MAX/B()*100;
-  if(endShare<100){ const ex=Math.max(X(endShare),m.l);
+  if(endShare<x1){ const ex=Math.max(X(endShare),m.l);
     s+=`<rect x="${ex}" y="${pt}" width="${W-m.r-ex}" height="${pb-pt}" fill="#f8f9fa"/>`;
-    if(endShare>0){ const tx=Math.abs(mx-ex)<14? ex+12 : ex+13, ty=Y(y0+(y1-y0)*.45);
+    if(endShare>x0){ const tx=Math.abs(mx-ex)<14? ex+12 : ex+13, ty=Y(y0+(y1-y0)*.45), lw=tw(`OTT 곡선 실측 끝 ${OTT_MAX}억 →`,10.5,600); endBox={l:tx-11,r:tx+3,t:ty-lw/2-4,b:ty+lw/2+4};
       s+=`<line x1="${ex}" x2="${ex}" y1="${pt}" y2="${pb}" stroke="#b9c1c9" stroke-dasharray="2 3"/><text transform="translate(${tx},${ty}) rotate(-90)" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-weight="600">OTT 곡선 실측 끝 ${OTT_MAX}억 →</text>`; } }
   // grid + y labels
-  for(let v=y0; v<=y1+1e-9; v+=step){ const y=Y(v); s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="#e6e9ec"/><text x="${m.l-9}" y="${y+3.5}" text-anchor="end" font-size="11" fill="var(--muted)" font-weight="600">${+v.toFixed(1)}%</text>`; }
+  for(let v=y0; v<=y1+1e-9; v+=step){ const y=Y(v), vl=Math.round(v*100)/100; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="#e6e9ec"/><text x="${m.l-9}" y="${y+3.5}" text-anchor="end" font-size="11" fill="var(--muted)" font-weight="600">${vl}%</text>`; }
   // x axes: top = TV (navy), bottom = OTT (orange); everything stays inside the plot column
   //  1 = solid bands · 4 = thin wedge · 5 = thick wedge, names at the thick ends · 6 = stepped blocks · 7 = wedge + labels that grow/shrink
   const bx=m.l, bw=W-m.l-m.r, V=AXV;
@@ -497,31 +533,35 @@ function drawChart(me){
   const nm=(t,y,col,an,x)=>`<text x="${x}" y="${y}" text-anchor="${an}" font-size="22" font-weight="900" letter-spacing="1" fill="${col}">${t}</text>`;
   if(V===5) s+=nm('TV ◀',C.nT,'var(--acc)','start',bx)+nm('▶ OTT',C.nO,'var(--ott)','end',bx+bw);
   else s+=nm('TV',C.nT,'var(--acc)','middle',bx+bw/2)+nm('OTT',C.nO,'var(--ott)','middle',bx+bw/2);
-  const near=x=>S.show.me && Math.abs(x-mx)<36, on=V===1;
-  for(let v=0; v<=100; v+=10){ const x=X(v), hide=near(x)?'opacity="0"':'';
+  const near=x=>meIn && Math.abs(x-mx)<36, on=V===1, xs=niceStep(x1-x0,10);
+  for(let vv=Math.ceil(x0/xs-1e-9)*xs; vv<=x1+1e-9; vv+=xs){ const v=Math.round(vv*1000)/1000, x=X(v), hide=near(x)?'opacity="0"':'';
     const sT=V===7?15-5*v/100:11.5, sO=V===7?10+5*v/100:11.5, wT=V===7?11.5-3*v/100:10.5, wO=V===7?8.5+3*v/100:10.5;
     s+=`<text x="${x}" y="${C.tW}" text-anchor="middle" font-size="${wT}" fill="${on?'rgba(255,255,255,.75)':'#7d8c9b'}" font-weight="600" ${hide}>${fE(B()*(100-v)/100)}억</text>
-      <text x="${x}" y="${C.tP}" text-anchor="middle" font-size="${sT}" fill="${on?'#fff':'#2f4458'}" font-weight="800" ${hide}>${100-v}%</text>
-      <text x="${x}" y="${C.oP}" text-anchor="middle" font-size="${sO}" fill="${on?'#fff':'#8f5526'}" font-weight="800" ${hide}>${v}%</text>
+      <text x="${x}" y="${C.tP}" text-anchor="middle" font-size="${sT}" fill="${on?'#fff':'#2f4458'}" font-weight="800" ${hide}>${fP(100-v)}%</text>
+      <text x="${x}" y="${C.oP}" text-anchor="middle" font-size="${sO}" fill="${on?'#fff':'#8f5526'}" font-weight="800" ${hide}>${fP(v)}%</text>
       <text x="${x}" y="${C.oW}" text-anchor="middle" font-size="${wO}" fill="${on?'rgba(255,255,255,.8)':'#b08860'}" font-weight="600" ${hide}>${fE(B()*v/100)}억</text>`; }
   // tolerance bars (bottom of plot)
-  const zb=(Z,lab,col,yv)=>{ const a=X(Z[0]), b=X(Z[1]), y=Y(yv);
+  const zb=(Z,lab,col,yv)=>{ if(Z[1]<x0||Z[0]>x1) return ''; const za=Math.max(Z[0],x0), zz=Math.min(Z[1],x1), a=X(za), b=X(zz), y=Y(yv);
+    const t=`${lab} 허용 구간 · OTT ${fP(Z[0])}~${fP(Z[1])}%`, w=tw(t,10.5,800);
+    let tx=b+8, an='start', ty=y+4; if(tx+w>W-m.r-4){ if(a-8-w>=m.l+4){ tx=a-8; an='end'; } else { tx=Math.max(m.l+4+w/2,Math.min(W-m.r-4-w/2,(a+b)/2)); an='middle'; ty=y-10; } }
     return `<rect x="${a}" y="${pt}" width="${Math.max(2,b-a)}" height="${pb-pt}" fill="${col}" opacity=".06"/>
       <line x1="${a}" x2="${b}" y1="${y}" y2="${y}" stroke="var(--best)" stroke-width="5" stroke-linecap="round" opacity=".55"/>
-      <line x1="${a}" x2="${a}" y1="${y-6}" y2="${y+6}" stroke="var(--best)" stroke-width="1.5"/><line x1="${b}" x2="${b}" y1="${y-6}" y2="${y+6}" stroke="var(--best)" stroke-width="1.5"/>
-      <text x="${b+8}" y="${y+4}" font-size="10.5" font-weight="800" fill="var(--best-ink)">${lab} 허용 구간 · OTT ${fP(Z[0])}~${fP(Z[1])}%</text>`; };
+      ${Z[0]>=x0?`<line x1="${a}" x2="${a}" y1="${y-6}" y2="${y+6}" stroke="var(--best)" stroke-width="1.5"/>`:''}${Z[1]<=x1?`<line x1="${b}" x2="${b}" y1="${y-6}" y2="${y+6}" stroke="var(--best)" stroke-width="1.5"/>`:''}
+      <text x="${tx}" y="${ty}" text-anchor="${an}" font-size="10.5" font-weight="800" fill="var(--best-ink)" stroke="#fff" stroke-width="3" paint-order="stroke">${t}</text>`; };
   const yz1=y0+(y1-y0)*.17, yz3=y0+(y1-y0)*.07;
   if(SH.u1) s+=zb(Z1,'Reach 1+','#56a274',SH.u3?yz1:yz3); if(SH.u3) s+=zb(Z3,'Reach 3+','#56a274',yz3);
   // series
-  const path=k=>G.map((g,i)=>`${i?'L':'M'}${X(g.share).toFixed(1)},${Y(Math.max(y0,g[k])).toFixed(1)}`).join('');
-  s+=`<g clip-path="url(#cp)"><path d="${path(SH.u1?'u1':'u3')}L${X(100)},${pb}L${X(0)},${pb}Z" fill="#354758" fill-opacity=".06"/>
+  const path=k=>VG.map((g,i)=>`${i?'L':'M'}${X(g.share).toFixed(1)},${Y(Math.max(y0,g[k])).toFixed(1)}`).join('');
+  s+=`<g clip-path="url(#cp)"><path d="${path(SH.u1?'u1':'u3')}L${X(x1)},${pb}L${X(x0)},${pb}Z" fill="#354758" fill-opacity=".06"/>
     ${SH.u3?`<path d="${path('u3')}" fill="none" stroke="var(--u3)" stroke-width="2.6" stroke-linejoin="round"/>`:''}
     ${SH.u1?`<path d="${path('u1')}" fill="none" stroke="var(--u1)" stroke-width="3.2" stroke-linejoin="round"/>`:''}</g>`;
   // optimum markers
-  const OPTS=[]; if(SH.u1) OPTS.push([OPT1,'u1']); if(SH.u3) OPTS.push([OPT3,'u3']);
+  const OPTS=[]; if(SH.u1&&inV(OPT1.share)) OPTS.push([OPT1,'u1']); if(SH.u3&&inV(OPT3.share)) OPTS.push([OPT3,'u3']);
   OPTS.forEach(([g,k])=>{ s+=`<circle cx="${X(g.share)}" cy="${Y(g[k])}" r="6.5" fill="#fff" stroke="var(--best)" stroke-width="2.5"/><circle cx="${X(g.share)}" cy="${Y(g[k])}" r="2.4" fill="var(--best)"/>`; });
- // me
-  if(SH.me) s+=`<line x1="${mx}" x2="${mx}" y1="${pt}" y2="${pb}" stroke="var(--me)" stroke-width="2"/>
+ // me (an edge marker when it sits outside the view)
+  if(SH.me&&!meIn){ const left=S.share<x0, t=left?`◀ 내 플랜 OTT ${fP(S.share)}%`:`내 플랜 OTT ${fP(S.share)}% ▶`, w=tw(t,11,800)+20, ex=left?m.l+6:W-m.r-6-w;
+    s+=`<rect x="${ex}" y="${pt+8}" width="${w}" height="22" rx="11" fill="#fff" stroke="var(--me)" stroke-width="1.5"/><text x="${ex+w/2}" y="${pt+23}" text-anchor="middle" font-size="11" font-weight="800" fill="var(--me)">${t}</text>`; }
+  if(meIn) s+=`<line x1="${mx}" x2="${mx}" y1="${pt}" y2="${pb}" stroke="var(--me)" stroke-width="2"/>
     ${SH.u3?`<circle cx="${mx}" cy="${Y(me.u3)}" r="5.5" fill="var(--me)" stroke="#fff" stroke-width="2.5"/>`:''}${SH.u1?`<circle cx="${mx}" cy="${Y(me.u1)}" r="7" fill="var(--me)" stroke="#fff" stroke-width="2.8"/>`:''}
     <rect x="${mx-36}" y="${C.pB}" width="72" height="22" rx="11" fill="${true?'#fff':'var(--me)'}" stroke="${true?'var(--me)':'#fff'}" stroke-width="2"/><text x="${mx}" y="${C.pB+15}" text-anchor="middle" font-size="11" font-weight="800" fill="${true?'var(--me)':'#fff'}">OTT ${fP(S.share)}%</text>
     <rect x="${mx-36}" y="${C.pT}" width="72" height="22" rx="11" fill="${true?'#fff':'var(--me)'}" stroke="${true?'var(--me)':'#fff'}" stroke-width="2"/><text x="${mx}" y="${C.pT+15}" text-anchor="middle" font-size="11" font-weight="800" fill="${true?'var(--me)':'#fff'}">TV ${fP(100-S.share)}%</text>`;
@@ -533,15 +573,15 @@ function drawChart(me){
   co.innerHTML=`<div class="h"><i></i>내 플랜</div><div class="mix num">${mixHtml(S.share)}</div><div class="won num">TV ${eokTxt(me.t*EOK)} · OTT ${eokTxt(me.o*EOK)}</div>
     <div class="row"><span>Reach 1+</span><span><b class="num">${f1(me.u1)}%</b><em class="num">${signed(me.u1-BASE.u1)}</em></span></div>
     <div class="row"><span>Reach 3+</span><span><b class="num">${f1(me.u3)}%</b><em class="num">${signed(me.u3-BASE.u3)}</em></span></div>`;
-  co.style.display=SH.me?'block':'none';
+  co.style.display=meIn?'block':'none';
   { const zTop=Y(SH.u1&&SH.u3?yz1:yz3)-12, want=Y(SH.u3?me.u3:me.u1)+44;
     placeCard(co, mx, Math.max(pt+4, Math.min(want, zTop-co.offsetHeight-6))); }
   co.classList.toggle('dim',hovering);
   // optimum labels: try 4 spots, keep each fully inside the plot and clear of 내 플랜 line/card and each other
   const plotBox={l:m.l+2,r:W-m.r-2,t:pt+4,b:pb-4}, avoid=[];
-  if(SH.me){ avoid.push({l:mx-7,r:mx+7,t:pt,b:pb}); const cl=co.offsetLeft, ct=co.offsetTop; avoid.push({l:cl-6,r:cl+co.offsetWidth+6,t:ct-6,b:ct+co.offsetHeight+6}); }
-  const ctx=(drawChart._c||(drawChart._c=document.createElement('canvas').getContext('2d')));
-  const tw=(t,sz,wt)=>{ ctx.font=`${wt} ${sz}px Pretendard, sans-serif`; return ctx.measureText(t).width; };
+  if(SH.me&&!meIn) avoid.push({l:S.share<x0?m.l:W-m.r-200,r:S.share<x0?m.l+200:W-m.r,t:pt,b:pt+36});
+  if(endBox) avoid.push(endBox);
+  if(meIn){ avoid.push({l:mx-7,r:mx+7,t:pt,b:pb}); const cl=co.offsetLeft, ct=co.offsetTop; avoid.push({l:cl-6,r:cl+co.offsetWidth+6,t:ct-6,b:ct+co.offsetHeight+6}); }
   const ov=(a,b)=>Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l))*Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t));
   let lab='';
   OPTS.forEach(([g,k])=>{
@@ -549,7 +589,7 @@ function drawChart(me){
     const L=[[`${k==='u1'?'Reach 1+':'Reach 3+'} 최적`,10.5,800],[`TV ${fP(100-g.share)} : OTT ${fP(g.share)}`,11,800],[`TV ${eokTxt(g.t*EOK)} · OTT ${eokTxt(g.o*EOK)}`,10.5,700]];
     const w=Math.max(...L.map(l=>tw(...l)))+4, h=40;
     const preferAbove = k==='u1' || !SH.u1;
-    const curvePts=[]; ['u1','u3'].forEach(kk=>{ if(SH[kk]) G.forEach(gg=>curvePts.push([X(gg.share),Y(gg[kk])])); });
+    const curvePts=[]; ['u1','u3'].forEach(kk=>{ if(SH[kk]) VG.forEach(gg=>curvePts.push([X(gg.share),Y(gg[kk])])); });
     let best=null;
     [['a',10],['a',30],['b',12],['b',40],['b',70]].forEach(([v,gap])=>{ for(let f=0; f<=1.0001; f+=0.1){
       const l=ox-9-w+f*(w+18), above=v==='a';
@@ -566,8 +606,44 @@ function drawChart(me){
     L.forEach((l,ii)=>{ lab+=`<text x="${x}" y="${box.t+11+ii*13.5}" text-anchor="${an}" font-size="${l[1]}" font-weight="${l[2]}" fill="var(--best-ink)" ${halo}>${l[0]}</text>`; });
   });
   document.getElementById('hov').insertAdjacentHTML('beforebegin',lab);
+  drawMini(m,W,PX);
   $('cNote').textContent= B()>TV_MAX_OBS ? `TV 189억 초과(OTT ${fP((B()-TV_MAX_OBS)/B()*100)}% 미만)는 TV 곡선 외삽 구간` : '';
 }
+/* minimap: full 0~100% overview with a draggable window */
+let MM=null;
+function drawMini(m,W,PX){
+  const svg=$('mini'), H=58, t=6, b=H-14, L=m.l+PX, Rr=W-m.r-PX, X=v=>L+v/100*(Rr-L);
+  const KS=['u1','u3'].filter(k=>S.show[k]); const lo=Math.min(...G.flatMap(g=>KS.map(k=>g[k]))), hi=Math.max(...G.flatMap(g=>KS.map(k=>g[k])));
+  const Y=v=>b-(v-lo)/(Math.max(hi-lo,1))*(b-t-4);
+  const p=k=>G.map((g,i)=>`${i?'L':'M'}${X(g.share).toFixed(1)},${Y(g[k]).toFixed(1)}`).join('');
+  const [a,z]=S.view, xa=X(a), xz=X(z);
+  let s=`<rect x="${m.l}" y="0" width="${W-m.l-m.r}" height="${H-8}" rx="8" fill="#f6f7f8"/>`;
+  KS.forEach(k=>{ s+=`<path d="${p(k)}" fill="none" stroke="${k==='u1'?'var(--u1)':'var(--u3)'}" stroke-width="${k==='u1'?1.8:1.4}" opacity=".85"/>`; });
+  if(S.show.me) s+=`<line x1="${X(S.share)}" x2="${X(S.share)}" y1="2" y2="${H-10}" stroke="var(--me)" stroke-width="1.5"/>`;
+  s+=`<rect x="${m.l}" y="0" width="${Math.max(0,xa-m.l)}" height="${H-8}" fill="#e9ecef" opacity=".82"/><rect x="${xz}" y="0" width="${Math.max(0,W-m.r-xz)}" height="${H-8}" fill="#e9ecef" opacity=".82"/>
+    <rect x="${xa}" y="1" width="${Math.max(1,xz-xa)}" height="${H-10}" rx="5" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+    <rect x="${xa-4}" y="${(H-8)/2-11}" width="8" height="22" rx="4" fill="#fff" stroke="var(--ink)" stroke-width="1.4"/><rect x="${xz-4}" y="${(H-8)/2-11}" width="8" height="22" rx="4" fill="#fff" stroke="var(--ink)" stroke-width="1.4"/>`;
+  for(let v=0;v<=100;v+=10) s+=`<text x="${X(v)}" y="${H-0.5}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#b08860">${v}</text>`;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('height',H); svg.innerHTML=s;
+  MM={X,L,Rr,W};
+}
+(function(){
+  const svg=$('mini'); let mode=null, start=0, off=0;
+  const vAt=e=>{ const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)*(MM.W/r.width); return Math.max(0,Math.min(100,(px-MM.L)/(MM.Rr-MM.L)*100)); };
+  const pxAt=e=>{ const r=svg.getBoundingClientRect(); return (e.clientX-r.left)*(MM.W/r.width); };
+  const kind=e=>{ const px=pxAt(e), xa=MM.X(S.view[0]), xz=MM.X(S.view[1]); if(Math.abs(px-xa)<9) return 'l'; if(Math.abs(px-xz)<9) return 'r'; if(px>xa&&px<xz) return 'pan'; return 'new'; };
+  const r05=v=>Math.round(v*2)/2;
+  svg.addEventListener('pointerdown',e=>{ if(!MM) return; svg.setPointerCapture(e.pointerId); mode=kind(e); const v=vAt(e); start=v; off=v-S.view[0]; });
+  svg.addEventListener('pointermove',e=>{ if(!MM) return; const v=vAt(e);
+    if(!mode){ const k=kind(e); svg.style.cursor=k==='pan'?'grab':k==='new'?'crosshair':'ew-resize'; return; }
+    const w=S.view[1]-S.view[0];
+    if(mode==='l') setView(r05(Math.min(v,S.view[1]-2)),S.view[1]);
+    else if(mode==='r') setView(S.view[0],r05(Math.max(v,S.view[0]+2)));
+    else if(mode==='pan'){ let a=r05(v-off); a=Math.max(0,Math.min(100-w,a)); setView(a,a+w); }
+    else if(mode==='new' && Math.abs(v-start)>=1) setView(r05(Math.min(start,v)),r05(Math.max(start,v))); });
+  const end=()=>{ mode=null; };
+  svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
+})();
 function placeCard(el, x, top){
   const {W,m,H}=SC, cw=el.offsetWidth, ch=el.offsetHeight;
   let left=x+16; if(left+cw>W-m.r-2) left=x-16-cw; left=Math.max(m.l+2,left);
@@ -576,7 +652,7 @@ function placeCard(el, x, top){
 /* interaction: hover card follows the curve, click/drag sets share */
 (function(){
   const svg=$('svg'), hc=$('hcard'); let drag=false;
-  const shareAt=e=>{ const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)*(SC.W/r.width); const v=(px-SC.m.l-SC.PX)/(SC.W-SC.m.l-SC.m.r-2*SC.PX)*100; return Math.max(0,Math.min(100,Math.round(v*2)/2)); };
+  const shareAt=e=>{ const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)*(SC.W/r.width); const v=SC.x0+(px-SC.m.l-SC.PX)/(SC.W-SC.m.l-SC.m.r-2*SC.PX)*(SC.x1-SC.x0), q=(SC.x1-SC.x0)<=20?10:2; return Math.max(SC.x0,Math.min(SC.x1,Math.round(v*q)/q)); };
   function hover(v){
     const g=calc(v), x=SC.X(v);
     const hv=document.getElementById('hov'); if(!hv) return; hv.setAttribute('visibility','visible');
