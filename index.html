@@ -151,18 +151,22 @@ button.kpi.cur:hover{border-color:var(--line);box-shadow:0 1px 2px rgba(20,30,45
 .hcard .r.sub{color:#9aa6b2}
 .hcard .r.sub b{color:#dfe5eb;font-weight:700}
 .hcard .f{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12);color:#9aa6b2;font-size:10.5px;font-weight:600}
-.viewbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:8px 10px;background:#f6f7f8;border-radius:11px;font-size:12px;font-weight:700;color:var(--ink2)}
-.viewbar .vl{font-weight:800;color:var(--ink);margin-right:2px}
-.viewbar label{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 8px;height:30px}
-.viewbar label:focus-within{border-color:var(--me)}
-.viewbar input{width:44px;border:0;outline:0;font:inherit;font-weight:800;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;background:transparent}
-.viewbar .tvh{font-size:11px;color:var(--muted);font-weight:600}
-.viewbar .chips2{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
-.viewbar .chips2 button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 11px;font-size:11.5px;font-weight:700;color:var(--ink2)}
-.viewbar .chips2 button.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.mini{margin-top:2px;position:relative}
-.mini svg{display:block;width:100%;user-select:none;touch-action:none}
-.mini-cap{font-size:11px;color:var(--muted);font-weight:600;margin:2px 0 0 58px}
+.lg.rng{color:var(--ink)}
+.lg.rng.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.rg{display:flex;align-items:center;gap:8px;margin-top:14px}
+.rg label{flex:1;display:flex;align-items:center;gap:6px;border:1.5px solid var(--acc);border-radius:11px;padding:0 12px;height:46px}
+.rg label:focus-within{border-color:var(--me)}
+.rg label span{font-size:11.5px;font-weight:800;color:var(--acc);white-space:nowrap}
+.rg label input{border:0;outline:0;width:100%;min-width:0;text-align:right;font-size:20px;font-weight:800;color:var(--ink);background:transparent}
+.rg label em{font-style:normal;font-weight:700;color:var(--ink2)}
+.rg-to{color:var(--muted);font-weight:700}
+.rg-conv{margin-top:10px;background:#f6f7f8;border-radius:11px;padding:10px 12px;font-size:12px}
+.rg-conv .r{display:flex;align-items:baseline;gap:10px;padding:2px 0}
+.rg-conv .r span{width:30px;font-weight:800}
+.rg-conv .r b{font-size:14px;font-weight:800;min-width:120px}
+.rg-conv .r small{color:var(--muted);font-weight:600;font-size:11.5px}
+.rg-conv .warn{margin-top:4px;font-weight:700;font-size:11.5px}
+.modal .acts .btn:disabled{opacity:.45;cursor:not-allowed}
 .c-foot{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;font-weight:600;padding:6px 2px 2px;border-top:1px solid var(--gline);margin-top:4px}
 
 /* table */
@@ -318,17 +322,10 @@ tbody tr:hover td{background:#fafbfc}
           <button class="lg" data-k="u1"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--u1)" stroke-width="3.2" stroke-linecap="round"/></svg>Reach 1+</button>
           <button class="lg" data-k="u3"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--u3)" stroke-width="2.6" stroke-linecap="round"/></svg>Reach 3+</button>
           <button class="lg" data-k="me"><span class="me-dot"></span>내 플랜</button>
+          <button class="lg rng" id="btnRange"><svg width="14" height="12" viewBox="0 0 14 12" fill="none"><path d="M1 1v10M13 1v10M3.5 6h7M3.5 6l2-2M3.5 6l2 2M10.5 6l-2-2M10.5 6l-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>구간 설정<span id="rangeTxt" class="num"></span></button>
         </div>
       </div>
-      <div class="viewbar">
-        <span class="vl">보기 구간</span>
-        <label>OTT<input id="v0" class="num" inputmode="decimal">%</label>~<label><input id="v1" class="num" inputmode="decimal">%</label>
-        <span class="tvh num" id="vTv"></span>
-        <div class="chips2" id="vChips"><button data-v="all">전체</button><button data-v="030">OTT 0~30%</button><button data-v="me">내 플랜 주변</button><button data-v="opt">최적 구간</button></div>
-      </div>
       <div class="plot" id="plot"><svg id="svg"></svg><div class="callout" id="callout"></div><div class="hcard" id="hcard"></div></div>
-      <div class="mini"><svg id="mini"></svg></div>
-      <div class="mini-cap">↑ 전체 그래프 · 끌어서 보고 싶은 구간을 고르거나, 회색 창을 옮기거나 양 끝을 늘이고 줄일 수 있어요</div>
       <div class="c-foot"><span>그래프 위에 마우스를 올리면 그 지점 값을 보여 주고, 클릭하거나 파란 선을 끌면 비중이 바뀝니다</span><span id="cNote"></span></div>
     </div>
 
@@ -393,18 +390,35 @@ const digits=s=>parseFloat(String(s).replace(/[^\d.]/g,''))||0;
 /* ---------- inputs ---------- */
 const $=id=>document.getElementById(id);
 function segBind(id,key,conv=v=>v){ $(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{ $(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); S[key]=conv(b.dataset.v); render(); }); }
-document.querySelectorAll('.legend .lg').forEach(b=>b.onclick=()=>{ const k=b.dataset.k;
+document.querySelectorAll('.legend .lg[data-k]').forEach(b=>b.onclick=()=>{ const k=b.dataset.k;
   if(k!=='me' && S.show[k] && !S.show[k==='u1'?'u3':'u1']) return; // keep at least one curve
   S.show[k]=!S.show[k]; render(); });
 function setView(a,b){ a=Math.max(0,Math.min(100,a)); b=Math.max(0,Math.min(100,b)); if(a>b)[a,b]=[b,a];
   if(b-a<2){ const c=(a+b)/2; a=Math.max(0,Math.min(98,c-1)); b=a+2; }
   S.view=[Math.round(a*10)/10, Math.round(b*10)/10]; render(); }
-['v0','v1'].forEach((id,i)=>{ $(id).addEventListener('change',e=>{ const v=parseFloat(String(e.target.value).replace(/[^\d.]/g,'')); if(isNaN(v)) return render();
-  i?setView(S.view[0],v):setView(v,S.view[1]); }); $(id).addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.blur(); }); });
-$('vChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{ const k=b.dataset.v;
-  if(k==='all') setView(0,100); else if(k==='030') setView(0,30);
-  else if(k==='me'){ const a=Math.max(0,Math.min(80,S.share-10)); setView(a,a+20); }
-  else { const lo=Math.min(Z1[0],Z3[0],OPT1.share,OPT3.share), hi=Math.max(Z1[1],Z3[1],OPT1.share,OPT3.share), pad=Math.max(2,(hi-lo)*.25); setView(Math.floor(lo-pad),Math.ceil(hi+pad)); } });
+function openRange(){
+  const tvA=100-S.view[0], tvB=100-S.view[1];
+  openModal(`<h4>구간 설정</h4><p>그래프에서 보고 싶은 구간을 <b>TV 비중</b>으로 입력하세요. OTT 기준은 아래에 자동으로 환산됩니다.</p>
+    <div class="rg">
+      <label><span>시작 TV</span><input id="rgA" class="num" inputmode="decimal" value="${fP(tvA)}"><em>%</em></label>
+      <span class="rg-to">~</span>
+      <label><span>종료 TV</span><input id="rgB" class="num" inputmode="decimal" value="${fP(tvB)}"><em>%</em></label>
+    </div>
+    <div class="rg-conv num" id="rgConv"></div>
+    <div class="acts"><button class="btn" id="rgAll" style="margin-right:auto">전체 보기</button><button class="btn" data-close>취소</button><button class="btn ok" id="rgOk">적용</button></div>`);
+  const num=id=>{ const v=parseFloat(String($(id).value).replace(/[^\d.]/g,'')); return isNaN(v)?null:Math.max(0,Math.min(100,v)); };
+  const upd=()=>{ const a=num('rgA'), b=num('rgB'), c=$('rgConv');
+    if(a===null||b===null){ c.innerHTML='<span class="dn">숫자를 입력해 주세요</span>'; $('rgOk').disabled=true; return; }
+    const hi=Math.max(a,b), lo=Math.min(a,b), oA=100-hi, oB=100-lo, ok=hi-lo>=2; $('rgOk').disabled=!ok;
+    c.innerHTML=`<div class="r"><span class="mx-tv">TV</span><b>${fP(hi)}% → ${fP(lo)}%</b><small>${fE(B()*hi/100)}억 → ${fE(B()*lo/100)}억</small></div>
+      <div class="r"><span class="mx-ott">OTT</span><b>${fP(oA)}% → ${fP(oB)}%</b><small>${fE(B()*oA/100)}억 → ${fE(B()*oB/100)}억</small></div>
+      ${ok?'':'<div class="warn dn">시작과 종료 사이가 2%p 이상이어야 해요</div>'}`; };
+  ['rgA','rgB'].forEach(id=>{ $(id).addEventListener('input',upd); $(id).addEventListener('keydown',e=>{ if(e.key==='Enter' && !$('rgOk').disabled) $('rgOk').click(); }); });
+  $('rgOk').onclick=()=>{ const a=num('rgA'), b=num('rgB'); closeModal(); setView(100-Math.max(a,b),100-Math.min(a,b)); };
+  $('rgAll').onclick=()=>{ closeModal(); setView(0,100); };
+  upd(); $('rgA').focus(); $('rgA').select();
+}
+$('btnRange').onclick=openRange;
 segBind('ottMix','mix'); segBind('lam','lam',Number); segBind('tvc','tvc'); segBind('step','step',Number);
 $('slider').oninput=e=>{ S.share=100-(+e.target.value); render(); };
 
@@ -482,10 +496,9 @@ function render(){
   $('kb3v').innerHTML=optV(OPT3); $('kb3s').innerHTML=`Reach 3+ <b>${f1(OPT3.u3)}%</b>`+(isCur(OPT3)?' · <b class="up">현재 적용 중</b>':'');
   $('kb1').classList.toggle('cur',isCur(OPT1)); $('kb3').classList.toggle('cur',isCur(OPT3));
   $('cSub').textContent=`총 ${eokTxt(S.won)} 원 · 위 축은 TV, 아래 축은 OTT 비중 · 파란 선이 내가 설정한 비중`;
-  document.querySelectorAll('.legend .lg').forEach(b=>b.classList.toggle('off',!S.show[b.dataset.k]));
-  if(document.activeElement!==$('v0')) $('v0').value=fP(S.view[0]); if(document.activeElement!==$('v1')) $('v1').value=fP(S.view[1]);
-  $('vTv').textContent=`(TV ${fP(100-S.view[0])}~${fP(100-S.view[1])}%)`;
-  $('vChips').querySelectorAll('button').forEach(b=>b.classList.toggle('on', (b.dataset.v==='all'&&S.view[0]===0&&S.view[1]===100)||(b.dataset.v==='030'&&S.view[0]===0&&S.view[1]===30)));
+  document.querySelectorAll('.legend .lg[data-k]').forEach(b=>b.classList.toggle('off',!S.show[b.dataset.k]));
+  const zoomed=!(S.view[0]===0&&S.view[1]===100);
+  $('btnRange').classList.toggle('on',zoomed); $('rangeTxt').textContent=zoomed?`· TV ${fP(100-S.view[0])}~${fP(100-S.view[1])}%`:'';
   drawChart(me); drawTable(me);
 }
 
@@ -606,44 +619,8 @@ function drawChart(me){
     L.forEach((l,ii)=>{ lab+=`<text x="${x}" y="${box.t+11+ii*13.5}" text-anchor="${an}" font-size="${l[1]}" font-weight="${l[2]}" fill="var(--best-ink)" ${halo}>${l[0]}</text>`; });
   });
   document.getElementById('hov').insertAdjacentHTML('beforebegin',lab);
-  drawMini(m,W,PX);
   $('cNote').textContent= B()>TV_MAX_OBS ? `TV 189억 초과(OTT ${fP((B()-TV_MAX_OBS)/B()*100)}% 미만)는 TV 곡선 외삽 구간` : '';
 }
-/* minimap: full 0~100% overview with a draggable window */
-let MM=null;
-function drawMini(m,W,PX){
-  const svg=$('mini'), H=58, t=6, b=H-14, L=m.l+PX, Rr=W-m.r-PX, X=v=>L+v/100*(Rr-L);
-  const KS=['u1','u3'].filter(k=>S.show[k]); const lo=Math.min(...G.flatMap(g=>KS.map(k=>g[k]))), hi=Math.max(...G.flatMap(g=>KS.map(k=>g[k])));
-  const Y=v=>b-(v-lo)/(Math.max(hi-lo,1))*(b-t-4);
-  const p=k=>G.map((g,i)=>`${i?'L':'M'}${X(g.share).toFixed(1)},${Y(g[k]).toFixed(1)}`).join('');
-  const [a,z]=S.view, xa=X(a), xz=X(z);
-  let s=`<rect x="${m.l}" y="0" width="${W-m.l-m.r}" height="${H-8}" rx="8" fill="#f6f7f8"/>`;
-  KS.forEach(k=>{ s+=`<path d="${p(k)}" fill="none" stroke="${k==='u1'?'var(--u1)':'var(--u3)'}" stroke-width="${k==='u1'?1.8:1.4}" opacity=".85"/>`; });
-  if(S.show.me) s+=`<line x1="${X(S.share)}" x2="${X(S.share)}" y1="2" y2="${H-10}" stroke="var(--me)" stroke-width="1.5"/>`;
-  s+=`<rect x="${m.l}" y="0" width="${Math.max(0,xa-m.l)}" height="${H-8}" fill="#e9ecef" opacity=".82"/><rect x="${xz}" y="0" width="${Math.max(0,W-m.r-xz)}" height="${H-8}" fill="#e9ecef" opacity=".82"/>
-    <rect x="${xa}" y="1" width="${Math.max(1,xz-xa)}" height="${H-10}" rx="5" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
-    <rect x="${xa-4}" y="${(H-8)/2-11}" width="8" height="22" rx="4" fill="#fff" stroke="var(--ink)" stroke-width="1.4"/><rect x="${xz-4}" y="${(H-8)/2-11}" width="8" height="22" rx="4" fill="#fff" stroke="var(--ink)" stroke-width="1.4"/>`;
-  for(let v=0;v<=100;v+=10) s+=`<text x="${X(v)}" y="${H-0.5}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#b08860">${v}</text>`;
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('height',H); svg.innerHTML=s;
-  MM={X,L,Rr,W};
-}
-(function(){
-  const svg=$('mini'); let mode=null, start=0, off=0;
-  const vAt=e=>{ const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)*(MM.W/r.width); return Math.max(0,Math.min(100,(px-MM.L)/(MM.Rr-MM.L)*100)); };
-  const pxAt=e=>{ const r=svg.getBoundingClientRect(); return (e.clientX-r.left)*(MM.W/r.width); };
-  const kind=e=>{ const px=pxAt(e), xa=MM.X(S.view[0]), xz=MM.X(S.view[1]); if(Math.abs(px-xa)<9) return 'l'; if(Math.abs(px-xz)<9) return 'r'; if(px>xa&&px<xz) return 'pan'; return 'new'; };
-  const r05=v=>Math.round(v*2)/2;
-  svg.addEventListener('pointerdown',e=>{ if(!MM) return; svg.setPointerCapture(e.pointerId); mode=kind(e); const v=vAt(e); start=v; off=v-S.view[0]; });
-  svg.addEventListener('pointermove',e=>{ if(!MM) return; const v=vAt(e);
-    if(!mode){ const k=kind(e); svg.style.cursor=k==='pan'?'grab':k==='new'?'crosshair':'ew-resize'; return; }
-    const w=S.view[1]-S.view[0];
-    if(mode==='l') setView(r05(Math.min(v,S.view[1]-2)),S.view[1]);
-    else if(mode==='r') setView(S.view[0],r05(Math.max(v,S.view[0]+2)));
-    else if(mode==='pan'){ let a=r05(v-off); a=Math.max(0,Math.min(100-w,a)); setView(a,a+w); }
-    else if(mode==='new' && Math.abs(v-start)>=1) setView(r05(Math.min(start,v)),r05(Math.max(start,v))); });
-  const end=()=>{ mode=null; };
-  svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
-})();
 function placeCard(el, x, top){
   const {W,m,H}=SC, cw=el.offsetWidth, ch=el.offsetHeight;
   let left=x+16; if(left+cw>W-m.r-2) left=x-16-cw; left=Math.max(m.l+2,left);
