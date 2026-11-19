@@ -279,8 +279,8 @@ tbody tr:hover td{background:#fafbfc}
     <div class="field">
       <div class="lab">OTT 집행 구성</div>
       <div class="seg col" id="ottMix">
-        <button class="on" data-v="nf80">넷플릭스 80% + 티빙 20%<small>30억 Reach 1+ 54.0%</small></button>
-        <button data-v="nf100">넷플릭스 100%<small>30억 Reach 1+ 48.4%</small></button>
+        <button data-v="nf80">넷플릭스 80% + 티빙 20%<small>30억 Reach 1+ 54.0%</small></button>
+        <button class="on" data-v="nf100">넷플릭스 100%<small>30억 Reach 1+ 48.4%</small></button>
       </div>
     </div>
 
@@ -304,7 +304,7 @@ tbody tr:hover td{background:#fafbfc}
     </div>
 
     <div class="field">
-      <div class="lab">허용 구간 <button class="reset" id="tolReset">기본값 0.2%p</button></div>
+      <div class="lab">허용 구간 <button class="reset" id="tolReset">기본값 0.05%p</button></div>
       <div class="tolbox">
         <label>최대 대비<input id="tol" class="num" inputmode="decimal" autocomplete="off"><span>%p 이내</span></label>
         <div class="stepper"><button id="tolDn" aria-label="줄이기">−</button><button id="tolUp" aria-label="늘리기">+</button></div>
@@ -331,6 +331,7 @@ tbody tr:hover td{background:#fafbfc}
           <button class="lg" data-k="u1"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--u1)" stroke-width="3.2" stroke-linecap="round"/></svg>Reach 1+</button>
           <button class="lg" data-k="u3"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--u3)" stroke-width="2.6" stroke-linecap="round"/></svg>Reach 3+</button>
           <button class="lg" data-k="me"><span class="me-dot"></span>내 플랜</button>
+          <button class="lg" data-k="end"><svg width="10" height="14"><line x1="5" y1="1" x2="5" y2="13" stroke="#9aa6b2" stroke-width="1.5" stroke-dasharray="2 2"/></svg>OTT 실측 끝</button>
           <span class="rgrp"><span class="rgl">구간 설정</span>
             <button class="lg rng" id="btnY">Y축<span id="yTxt" class="num"></span></button>
             <button class="lg rng" id="btnRange">X축<span id="rangeTxt" class="num"></span></button></span>
@@ -361,10 +362,11 @@ tbody tr:hover td{background:#fafbfc}
 const OTT = {"nf80":{"r1":[23.7,32.0743,36.8875,40.0817,42.3795,44.122,45.4942,46.6059,47.5269,48.3036,48.9684,49.5445,50.0489,50.4947,50.8918,51.248,51.5695,51.8612,52.1272,52.3709,52.595,52.8019,52.9935,53.1716,53.3376,53.4926,53.6378,53.7741,53.9023,54.0232],"r3":[8.7161,15.6256,20.8579,24.9266,28.1756,30.8296,33.0389,34.9076,36.5094,37.8984,39.1148,40.1893,41.1457,42.0027,42.7753,43.4755,44.1132,44.6965,45.2322,45.726,46.1826,46.6063,47.0004,47.3681,47.712,48.0342,48.3369,48.6218,48.8904,49.1442]},"nf100":{"r1":[21.3625,28.6791,32.8826,35.6869,37.718,39.2695,40.4998,41.5034,42.3399,43.0496,43.6604,44.1924,44.6605,45.0761,45.4478,45.7825,46.0857,46.3618,46.6144,46.8465,47.0607,47.2589,47.443,47.6145,47.7747,47.9247,48.0655,48.1979,48.3228,48.4407],"r3":[7.3591,13.3454,17.9305,21.5276,24.4217,26.8017,28.7947,30.4895,31.9494,33.2209,34.3389,35.3303,36.2157,37.0117,37.7313,38.3854,38.9826,39.5302,40.0343,40.5,40.9315,41.3326,41.7065,42.0559,42.3831,42.6903,42.9793,43.2517,43.5088,43.7521]}};
 const TV = { low:{r1:[91.9628,3.9447,0.7359],r3:[83.467,8.2665,0.9014]}, base:{r1:[92.8135,3.9086,0.7046],r3:[88.2141,9.3506,0.7904]}, high:{r1:[90.9841,3.7119,0.7532],r3:[94.4788,9.7313,0.6214]} };
 let AXV = 1;
-const TV_MAX_OBS = 189.2, OTT_MAX = 30, EOK = 1e8, TOL_DEFAULT = 0.2;
+const TV_MAX_OBS = 189.2, OTT_MAX = 30, EOK = 1e8, TOL_DEFAULT = 0.05;
 
 /* budget is kept in 원; share = OTT 비중(%) */
-const S = { won:200*EOK, share:20, mix:'nf80', lam:1.08, tvc:'base', tol:TOL_DEFAULT, step:5, show:{u1:true,u3:true,me:true}, view:[0,100], yr:null, ys:null };
+// 접속 시 기본 화면: 200억 · TV 88.5 : OTT 11.5 · 넷플릭스 100% · 계수 1.08 · 허용 0.05%p · Reach 1+만 · X축 TV 95~80% · Y축 89.5~89.85%(눈금 0.05%p)
+const S = { won:200*EOK, share:11.5, mix:'nf100', lam:1.08, tvc:'base', tol:TOL_DEFAULT, step:5, show:{u1:true,u3:false,me:false,end:false}, view:[5,20], yr:[89.5,89.85], ys:0.05 };
 const B = () => S.won/EOK;
 
 const hill = (b,[R,k,h]) => b<=0 ? 0 : Math.min(100, R*Math.pow(b,h)/(Math.pow(k,h)+Math.pow(b,h)));
@@ -402,7 +404,7 @@ const digits=s=>parseFloat(String(s).replace(/[^\d.]/g,''))||0;
 const $=id=>document.getElementById(id);
 function segBind(id,key,conv=v=>v){ $(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{ $(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); S[key]=conv(b.dataset.v); render(); }); }
 document.querySelectorAll('.legend .lg[data-k]').forEach(b=>b.onclick=()=>{ const k=b.dataset.k;
-  if(k!=='me' && S.show[k] && !S.show[k==='u1'?'u3':'u1']) return; // keep at least one curve
+  if((k==='u1'||k==='u3') && S.show[k] && !S.show[k==='u1'?'u3':'u1']) return; // keep at least one curve
   S.show[k]=!S.show[k]; render(); });
 function setView(a,b){ a=Math.max(0,Math.min(100,a)); b=Math.max(0,Math.min(100,b)); if(a>b)[a,b]=[b,a];
   if(b-a<2){ const c=(a+b)/2; a=Math.max(0,Math.min(98,c-1)); b=a+2; }
@@ -483,7 +485,7 @@ liveMoney($('ottIn'), v=>{ const o=Math.min(v,S.won); S.share=o/S.won*100; rende
 function setTol(v){ v=Math.round(Math.max(0.05,Math.min(5,v))*100)/100; S.tol=v; render(); }
 $('tol').addEventListener('change',e=>setTol(digits(e.target.value)||TOL_DEFAULT));
 $('tol').addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.blur(); });
-$('tolUp').onclick=()=>setTol(S.tol+0.1); $('tolDn').onclick=()=>setTol(S.tol-0.1); $('tolReset').onclick=()=>setTol(TOL_DEFAULT);
+$('tolUp').onclick=()=>setTol(S.tol+0.05); $('tolDn').onclick=()=>setTol(S.tol-0.05); $('tolReset').onclick=()=>setTol(TOL_DEFAULT);
 
 /* ---------- modal ---------- */
 function openModal(html, wide){ const b=$('mBox'); b.className='modal'+(wide?' wide':''); b.innerHTML=html; $('mBg').classList.add('open'); const ok=b.querySelector('.ok'); (ok||b.querySelector('button'))?.focus(); }
@@ -572,7 +574,7 @@ function drawChart(me){
   // OTT data-end region
   let endBox=null;
   const endShare=OTT_MAX/B()*100;
-  if(endShare<x1){ const ex=Math.max(X(endShare),m.l);
+  if(SH.end && endShare<x1){ const ex=Math.max(X(endShare),m.l);
     s+=`<rect x="${ex}" y="${pt}" width="${W-m.r-ex}" height="${pb-pt}" fill="#f8f9fa"/>`;
     if(endShare>x0){ const tx=Math.abs(mx-ex)<14? ex+12 : ex+13, ty=Y(y0+(y1-y0)*.45), lw=tw(`OTT 곡선 실측 끝 ${OTT_MAX}억 →`,10.5,600); endBox={l:tx-11,r:tx+3,t:ty-lw/2-4,b:ty+lw/2+4};
       s+=`<line x1="${ex}" x2="${ex}" y1="${pt}" y2="${pb}" stroke="#b9c1c9" stroke-dasharray="2 3"/><text transform="translate(${tx},${ty}) rotate(-90)" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-weight="600">OTT 곡선 실측 끝 ${OTT_MAX}억 →</text>`; } }
@@ -652,7 +654,7 @@ function drawChart(me){
   let lab='';
   OPTS.forEach(([g,k])=>{
     const ox=X(g.share), oy=Y(g[k]);
-    const L=[[`${k==='u1'?'Reach 1+':'Reach 3+'} 최적`,10.5,800],[`TV ${fP(100-g.share)} : OTT ${fP(g.share)}`,11,800],[`TV ${eokTxt(g.t*EOK)} · OTT ${eokTxt(g.o*EOK)}`,10.5,700]];
+    const L=[[`${k==='u1'?'Reach 1+':'Reach 3+'} 최적 ${g[k].toFixed(Math.max(1,ydec))}%`,10.5,800],[`TV ${fP(100-g.share)} : OTT ${fP(g.share)}`,11,800],[`TV ${eokTxt(g.t*EOK)} · OTT ${eokTxt(g.o*EOK)}`,10.5,700]];
     const w=Math.max(...L.map(l=>tw(...l)))+4, h=40;
     const preferAbove = k==='u1' || !SH.u1;
     const curvePts=[]; ['u1','u3'].forEach(kk=>{ if(SH[kk]) VG.forEach(gg=>curvePts.push([X(gg.share),Y(gg[kk])])); });
